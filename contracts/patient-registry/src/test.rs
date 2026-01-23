@@ -186,3 +186,21 @@ fn test_unauthorized_doctor_cannot_add_record() {
 
     client.add_medical_record(&patient, &doctor, &hash, &desc);
 }
+
+#[test]
+fn test_revoke_access() {
+    let env = Env::default();
+    let contract_id = env.register(MedicalRegistry, ());
+    let client = MedicalRegistryClient::new(&env, &contract_id);
+
+    let patient = Address::generate(&env);
+    let doctor = Address::generate(&env);
+
+    env.mock_all_auths();
+
+    client.grant_access(&patient, &doctor);
+    client.revoke_access(&patient, &doctor);
+
+    let doctors = client.get_authorized_doctors(&patient);
+    assert_eq!(doctors.len(), 0);
+}
