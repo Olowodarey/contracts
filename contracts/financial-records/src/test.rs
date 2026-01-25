@@ -8,7 +8,7 @@ fn test_add_and_get_records() {
     let e = Env::default();
     e.mock_all_auths();
 
-    let contract_id = e.register_contract(None, FinancialRecordContract);
+    let contract_id = e.register(FinancialRecordContract, ());
     let client = FinancialRecordContractClient::new(&e, &contract_id);
 
     let owner = Address::generate(&e);
@@ -27,29 +27,20 @@ fn test_add_and_get_records() {
 }
 
 #[test]
-fn test_access_control() {
+fn test_access_granted() {
     let e = Env::default();
     e.mock_all_auths();
 
-    let contract_id = e.register_contract(None, FinancialRecordContract);
+    let contract_id = e.register(FinancialRecordContract, ());
     let client = FinancialRecordContractClient::new(&e, &contract_id);
 
     let owner = Address::generate(&e);
     let auditor = Address::generate(&e);
-    let stranger = Address::generate(&e);
 
     let ipfs_hash = String::from_str(&e, "hash");
     let description = String::from_str(&e, "desc");
 
     client.add_financial_record(&owner, &RecordType::Invoice, &ipfs_hash, &description);
-
-    // Auditor cannot see yet
-    let result = e.as_contract(&contract_id, || {
-        std::panic::catch_unwind(|| {
-            client.get_financial_records(&auditor, &owner)
-        })
-    });
-    assert!(result.is_err());
 
     // Grant access
     client.grant_access(&owner, &auditor);
@@ -57,23 +48,45 @@ fn test_access_control() {
     // Auditor can see now
     let records = client.get_financial_records(&auditor, &owner);
     assert_eq!(records.len(), 1);
+}
 
-    // Stranger still cannot see
-    let result = e.as_contract(&contract_id, || {
-        std::panic::catch_unwind(|| {
-            client.get_financial_records(&stranger, &owner)
-        })
-    });
-    assert!(result.is_err());
+#[test]
+#[should_panic(expected = "Access denied")]
+fn test_unauthorized_access() {
+    let e = Env::default();
+    e.mock_all_auths();
 
-    // Revoke access
+    let contract_id = e.register(FinancialRecordContract, ());
+    let client = FinancialRecordContractClient::new(&e, &contract_id);
+
+    let owner = Address::generate(&e);
+    let stranger = Address::generate(&e);
+
+    client.add_financial_record(&owner, &RecordType::Invoice, &String::from_str(&e, "h"), &String::from_str(&e, "d"));
+
+    // Stranger cannot see
+    client.get_financial_records(&stranger, &owner);
+}
+
+#[test]
+#[should_panic(expected = "Access denied")]
+fn test_revoked_access() {
+    let e = Env::default();
+    e.mock_all_auths();
+
+    let contract_id = e.register(FinancialRecordContract, ());
+    let client = FinancialRecordContractClient::new(&e, &contract_id);
+
+    let owner = Address::generate(&e);
+    let auditor = Address::generate(&e);
+
+    client.add_financial_record(&owner, &RecordType::Invoice, &String::from_str(&e, "h"), &String::from_str(&e, "d"));
+
+    client.grant_access(&owner, &auditor);
+    client.get_financial_records(&auditor, &owner); // Should be fine
+
     client.revoke_access(&owner, &auditor);
-    let result = e.as_contract(&contract_id, || {
-        std::panic::catch_unwind(|| {
-            client.get_financial_records(&auditor, &owner)
-        })
-    });
-    assert!(result.is_err());
+    client.get_financial_records(&auditor, &owner); // Should panic
 }
 
 #[test]
@@ -81,7 +94,7 @@ fn test_filtering() {
     let e = Env::default();
     e.mock_all_auths();
 
-    let contract_id = e.register_contract(None, FinancialRecordContract);
+    let contract_id = e.register(FinancialRecordContract, ());
     let client = FinancialRecordContractClient::new(&e, &contract_id);
 
     let owner = Address::generate(&e);
