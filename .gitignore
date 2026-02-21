@@ -5,8 +5,38 @@ target
 .soroban
 .stellar
 
+# IDE and editor files
 .agents
 .cursor
 .windsurf
+.vscode
+.idea
+*.swp
+*.swo
+*~
+
+# Build artifacts
+*.wasm
+*.optimized.wasm
+Cargo.lock
+
+# Test artifacts
+test_snapshots
+
+# Coverage reports
+coverage
+*.profraw
+*.profdata
+cobertura.xml
+tarpaulin-report.html
+
+# CI/CD
 .github
 requirements.md
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
