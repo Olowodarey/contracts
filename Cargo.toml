@@ -16,6 +16,8 @@ members = [
   "contracts/lab-management",
   "contracts/allergy-tracking",
   "contracts/allergy-management",
+  "contracts/immunization-registry",
+  "contracts/medical-claims",
 ]
 
 [workspace.dependencies]
